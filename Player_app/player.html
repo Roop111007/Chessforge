@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="Chess Forge puzzle player">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<title>Chess Forge — Chess Puzzle Player</title>
+<style>
+:root{
+  --bg:#0b1220; --panel:#141e30; --panel2:#1d2b42; --text:#eef3fb; --muted:#9eacc2;
+  --accent:#79d6bd; --gold:#f3c969; --bad:#ff8585; --light:#e9edf3; --dark:#7892a7; --sqHint:#f6d66b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% -15%,#29425d 0,#0b1220 48%);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{padding:18px max(18px,calc((100vw - 1120px)/2));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffffff17;gap:12px}
+.brand{font-weight:950;letter-spacing:.11em;font-size:18px}
+.brand span{color:var(--accent)}
+.tag{font-size:11px;color:var(--muted);letter-spacing:.1em}
+main{max-width:1120px;margin:26px auto;padding:0 16px 50px}
+.panel{background:linear-gradient(145deg,#17263b,#111a2a);border:1px solid #ffffff19;border-radius:18px;padding:20px;box-shadow:0 18px 55px #0004;margin-bottom:16px}
+h1{font-size:clamp(27px,5vw,42px);line-height:1.08;margin:0 0 10px}
+h2{font-size:21px;margin:0 0 12px}
+p{color:var(--muted);margin:7px 0 14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+button,select{border:1px solid #ffffff24;background:#24364f;color:var(--text);padding:11px 15px;border-radius:11px;font:inherit;cursor:pointer}
+button.primary{background:var(--accent);color:#092019;border:0;font-weight:850}
+button.ghost{background:transparent}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:active{transform:scale(.985)}
+select{padding:9px}
+.levelgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-top:18px}
+.level{padding:18px 14px;text-align:left;min-height:112px;background:linear-gradient(145deg,#253d59,#1a2940);border:1px solid #ffffff22;cursor:pointer}
+.level strong{display:block;font-size:18px;margin-bottom:6px}
+.level small{color:#bdcadd}
+.hidden{display:none!important}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+.status{padding:10px 12px;border-radius:10px;background:#0e1726;border:1px solid #ffffff14;margin:10px 0}
+.metricgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric{background:#0e1726;border:1px solid #ffffff12;border-radius:12px;padding:14px 10px;text-align:center}
+.metric strong{display:block;font-size:22px}
+.metric small{color:var(--muted);font-size:11px}
+.numbergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px;margin-top:12px}
+.numbergrid button{aspect-ratio:1;padding:0;font-weight:700;border-radius:10px}
+.numbergrid button.done{background:#1a3a2e;color:#79d6bd}
+.numbergrid button.current{outline:2px solid var(--gold);outline-offset:1px}
+.progress{height:6px;background:#0e1726;border-radius:99px;overflow:hidden;margin:8px 0}
+.progress i{display:block;height:100%;background:var(--accent);width:0%;transition:width .3s}
+.game{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+@media(max-width:860px){.game{grid-template-columns:1fr}.metricgrid{grid-template-columns:repeat(2,1fr)}}
+.boardwrap{background:linear-gradient(145deg,#17263b,#111a2a);border:1px solid #ffffff19;border-radius:18px;padding:14px}
+.board{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,520px);aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+.sq{display:flex;align-items:center;justify-content:center;font-size:clamp(22px,5.2vw,42px);position:relative;cursor:pointer}
+.sq.light{background:var(--light)}
+.sq.dark{background:var(--dark)}
+.sq.hint{background:var(--sqHint)!important}
+.sq.selected{box-shadow:inset 0 0 0 3px #79d6bd}
+.sq.last{box-shadow:inset 0 0 0 3px #f3c96988}
+.coords{position:absolute;font-size:10px;opacity:.55;pointer-events:none}
+.sidepanel h2{margin-top:0}
+.warn{background:#3a1f1f;border:1px solid #ff858566;color:#ffc9c9;padding:14px 16px;border-radius:12px;margin-bottom:16px}
+.warn code{background:#0004;padding:2px 6px;border-radius:4px}
+.setting{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">♞ CHESS <span>FORGE</span></div>
+  <div class="tag">PUZZLE PLAYER</div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="home">
+    <div id="fileWarn" class="warn hidden">
+      <strong>You are opening this file directly (file://).</strong><br>
+      Browsers block loading the puzzle data this way.<br><br>
+      Fix: open a terminal in the <code>1_Player_App</code> folder and run:<br>
+      <code>python3 -m http.server 8080</code><br>
+      then visit <code>http://localhost:8080</code>
+    </div>
+
+    <div class="panel">
+      <h1>Train beyond your limits.</h1>
+      <p>Choose a difficulty and play. Progress is saved on this device. Basic users unlock 100 new puzzles per level every month.</p>
+      <div class="row">
+        <button class="primary" id="resume">Continue training</button>
+        <span class="small muted" id="packstatus">Preparing puzzle collection…</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" id="forceReload" title="Clear local cache and re-download batches">Force reload puzzles</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Membership access</h2>
+      <p id="planstatus">Checking access…</p>
+      <p class="small muted">Basic starts with the first 100 puzzles per level. Each monthly anniversary of your first launch unlocks the next 100. Premium/Ultimate unlocks everything immediately (requires server verification).</p>
+    </div>
+
+    <div class="panel">
+      <div class="bar">
+        <h2>Your progress</h2>
+        <span class="small muted" id="totalstats">—</span>
+      </div>
+      <div class="metricgrid">
+        <div class="metric"><strong id="solvedstat">0</strong><small>Solved</small></div>
+        <div class="metric"><strong id="streakstat">0</strong><small>Current streak</small></div>
+        <div class="metric"><strong id="beststat">0</strong><small>Best streak</small></div>
+        <div class="metric"><strong id="accuracyStat">—</strong><small>Accuracy</small></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="bar"><h2>Training settings</h2><span class="small muted">Personalise your board</span></div>
+      <div class="row">
+        <label class="setting"><input type="checkbox" id="hints" checked> Hints enabled</label>
+        <label class="setting"><input type="checkbox" id="auto" checked> Auto-play opponent replies</label>
+        <label class="setting"><input type="checkbox" id="sound" checked> Sound effects</label>
+        <label class="setting">Board
+          <select id="boardtheme">
+            <option value="classic">Classic</option>
+            <option value="forest">Forest</option>
+            <option value="midnight">Midnight</option>
+            <option value="wood">Wood</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Choose difficulty</h2>
+      <p class="small muted">Five rating bands. Each level has a numbered progression.</p>
+      <div class="levelgrid" id="levelgrid"></div>
+    </div>
+  </section>
+
+  <!-- LIST -->
+  <section id="list" class="hidden">
+    <div class="panel">
+      <div class="bar">
+        <div>
+          <button class="ghost" id="backhome">← Home</button>
+          <h2 id="listtitle" style="display:inline-block;margin-left:8px">Easy</h2>
+        </div>
+        <span class="muted small" id="listcount"></span>
+      </div>
+      <div class="progress"><i id="levelbar"></i></div>
+      <p class="small" id="unlockmsg">Solve a puzzle to unlock the next one.</p>
+      <p class="small muted" id="pageLabel"></p>
+      <div class="numbergrid" id="numbers"></div>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" class="hidden">
+    <div class="bar">
+      <button class="ghost" id="backlist">← Puzzle list</button>
+      <div class="muted small" id="puzzlelabel"></div>
+    </div>
+    <div class="game">
+      <div class="boardwrap">
+        <div class="board" id="board"></div>
+        <div class="row" style="justify-content:space-between;margin-top:10px">
+          <button id="flip" class="ghost">⇅ Flip board</button>
+          <span class="small muted" id="rating"></span>
+        </div>
+      </div>
+      <div class="panel sidepanel">
+        <h2 id="tasktitle">Solve the puzzle</h2>
+        <p id="taskdesc">Find the best continuation.</p>
+        <div class="status" id="status">Your move.</div>
+        <div class="row">
+          <button class="primary" id="hintbtn">Show board hint</button>
+          <button id="resetbtn">Reset</button>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <button id="solutionbtn" class="ghost">Show solution</button>
+          <button id="replybtn" class="ghost hidden">Play opponent reply</button>
+          <button id="nextbtn" class="primary" disabled>Next puzzle →</button>
+        </div>
+        <p class="small muted" id="hinttext">Tap one of your pieces to see its legal moves.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="./puzzles-pack.js"></script>
+<script>
+(() => {
+'use strict';
+
+// ---------- Constants ----------
+const DB_NAME = 'chessforge_player_v4r';
+const STORE = 'puzzles';
+const META = 'meta';
+const LEVELS = ['Easy','Medium','Hard','Tough','Unbeatable'];
+const LEVEL_RANGE = {
+  Easy: 'Below 1200',
+  Medium: '1200–1599',
+  Hard: '1600–1999',
+  Tough: '2000–2399',
+  Unbeatable: '2400+'
+};
+const PIECE = {K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+
+// ---------- State ----------
+let db = null;
+let catalog = null;
+let currentPlan = 'Basic';
+let unlockedBatchCount = 1;
+let basicStartAt = Date.now();
+let stats = { solved:0, mistakes:0, streak:0, best:0 };
+let currentLevel = 'Easy';
+let currentPuzzle = null;
+let game = null;
+let selected = -1;
+let flipped = false;
+let lastMove = null;
+let solutionIndex = 0;
+let waitingForOpponent = false;
+let moveHistory = [];
+
+// ---------- DOM helpers ----------
+const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden')); $(id).classList.remove('hidden'); };
+
+// ---------- IndexedDB ----------
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 4);
+    req.onupgradeneeded = (ev) => {
+      const d = req.result;
+      const tx = ev.target.transaction;
+      let s;
+      if (!d.objectStoreNames.contains(STORE)) {
+        s = d.createObjectStore(STORE, { keyPath: 'id' });
+        s.createIndex('level', 'level');
+        s.createIndex('levelDifficulty', ['level', 'displayOrder', 'id']);
+      } else {
+        s = tx.objectStore(STORE);
+        if (!s.indexNames.contains('level')) s.createIndex('level', 'level');
+        if (!s.indexNames.contains('levelDifficulty')) s.createIndex('levelDifficulty', ['level', 'displayOrder', 'id']);
+      }
+      // Always recreate META with a proper keyPath
+      if (d.objectStoreNames.contains(META)) d.deleteObjectStore(META);
+      d.createObjectStore(META, { keyPath: 'key' });
+    };
+    req.onsuccess = () => { db = req.result; resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function storeTx(name, mode='readonly') {
+  return db.transaction(name, mode).objectStore(name);
+}
+
+function getMeta(key) {
+  return new Promise((res, rej) => {
+    const q = storeTx(META).get(key);
+    q.onsuccess = () => res(q.result ? q.result.value : null);
+    q.onerror = () => rej(q.error);
+  });
+}
+
+function putMeta(key, value) {
+  return new Promise((res, rej) => {
+    const q = storeTx(META, 'readwrite').put({ key, value });
+    q.onsuccess = () => res();
+    q.onerror = () => rej(q.error);
+  });
+}
+
+function putMany(arr) {
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, 'readwrite');
+    const s = t.objectStore(STORE);
+    arr.forEach(p => s.put(p));
+    t.oncomplete = () => res();
+    t.onerror = () => rej(t.error);
+  });
+}
+
+function countAllPuzzles() {
+  return new Promise((r, j) => {
+    const q = storeTx(STORE).count();
+    q.onsuccess = () => r(q.result || 0);
+    q.onerror = () => j(q.error);
+  });
+}
+
+function countLevel(level) {
+  return new Promise((resolve, reject) => {
+    const req = storeTx(STORE).index('level').openCursor(IDBKeyRange.only(level));
+    let n = 0;
+    req.onsuccess = () => {
+      const c = req.result;
+      if (!c) { resolve(n); return; }
+      n++;
+      c.continue();
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function allLevel(level) {
+  return new Promise((r, j) => {
+    const q = storeTx(STORE).index('level').getAll(level);
+    q.onsuccess = () => r(q.result || []);
+    q.onerror = () => j(q.error);
+  });
+}
+
+function clearPuzzleStore() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ---------- Access / monthly unlock ----------
+function completedCalendarMonths(startValue, nowValue = Date.now()) {
+  const start = new Date(startValue);
+  const now = new Date(nowValue);
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const anniversaryDay = Math.min(start.getDate(), lastDay);
+  if (now.getDate() < anniversaryDay) months--;
+  return Math.max(0, months);
+}
+
+async function ensureBasicStartDate() {
+  let saved = await getMeta('basic_started_at');
+  if (!Number.isFinite(Number(saved)) || Number(saved) <= 0) {
+    saved = Date.now();
+    await putMeta('basic_started_at', saved);
+  }
+  basicStartAt = Number(saved);
+}
+
+async function getVerifiedPlan() {
+  try {
+    const response = await fetch('./api/entitlement', { cache: 'no-store', credentials: 'include' });
+    if (response.ok) {
+      const value = await response.json();
+      if (value && value.active === true && ['Premium', 'Ultimate'].includes(value.plan)) {
+        return value.plan;
+      }
+    }
+  } catch (e) { /* offline or not configured → Basic */ }
+  return 'Basic';
+}
+
+// ---------- Load puzzle batches ----------
+async function syncPuzzleBatches() {
+  const status = (msg) => { $('packstatus').textContent = msg; };
+
+  // Detect file:// early
+  if (location.protocol === 'file:') {
+    $('fileWarn').classList.remove('hidden');
+    status('Cannot load puzzles from file:// — use a local server (see warning above)');
+    return;
+  }
+
+  try {
+    status('Fetching catalogue…');
+    const response = await fetch('./data/catalog.json?v=' + Date.now(), { cache: 'no-store' });
+    if (!response.ok) throw new Error('Catalogue missing (HTTP ' + response.status + '). Did you include the data/ folder?');
+
+    catalog = await response.json();
+    if (!catalog || catalog.schemaVersion !== 1 || !Number.isInteger(catalog.batchCount)) {
+      throw new Error('Catalogue format is invalid.');
+    }
+
+    // Version change → clear old data
+    const previousVersion = await getMeta('data_catalog_version');
+    if (previousVersion && previousVersion !== (catalog.version || '1')) {
+      status('New catalogue detected — clearing old puzzles…');
+      await clearPuzzleStore();
+      await putMeta('downloaded_data_batches', []);
+      for (const level of LEVELS) {
+        await putMeta('progress_' + level, 0);
+        await putMeta('progress_key_' + level, null);
+      }
+    }
+    await putMeta('data_catalog_version', catalog.version || '1');
+
+    currentPlan = await getVerifiedPlan();
+    const elapsed = completedCalendarMonths(basicStartAt);
+    const entitledBatches = currentPlan === 'Basic'
+      ? Math.min(catalog.batchCount, elapsed + 1)
+      : catalog.batchCount;
+    unlockedBatchCount = entitledBatches;
+
+    const imported = new Set(await getMeta('downloaded_data_batches') || []);
+    const required = [];
+    for (let n = 1; n <= entitledBatches; n++) {
+      const key = (catalog.version || '1') + ':' + n;
+      if (!imported.has(key)) required.push(n);
+    }
+
+    let done = 0;
+    for (const n of required) {
+      const file = 'batch-' + String(n).padStart(6, '0') + '.json';
+      status(`Downloading batch ${n}… (${done + 1}/${required.length})`);
+      const r = await fetch('./data/' + file + '?v=' + encodeURIComponent(catalog.version || '1'), { cache: 'no-store' });
+      if (!r.ok) throw new Error('Cannot download ' + file + ' (HTTP ' + r.status + ')');
+      const batch = await r.json();
+      if (!batch || batch.schemaVersion !== 1 || batch.batch !== n || !batch.puzzles) {
+        throw new Error('Invalid puzzle batch ' + n);
+      }
+
+      const clean = [];
+      for (const level of LEVELS) {
+        const rows = Array.isArray(batch.puzzles[level]) ? batch.puzzles[level] : [];
+        for (const p of rows) {
+          if (p && p.id && p.fen && p.moves) {
+            const difficultyScore = Number(p.difficultyScore) || Number(p.rating) || 0;
+            clean.push({
+              ...p,
+              level,
+              difficultyScore,
+              accessBatch: n,
+              displayOrder: (n * 1000000) + (100000 - difficultyScore)
+            });
+          }
+        }
+      }
+      if (clean.length) await putMany(clean);
+      imported.add((catalog.version || '1') + ':' + n);
+      await putMeta('downloaded_data_batches', [...imported]);
+      done++;
+    }
+
+    // Remove any batches the user is no longer entitled to (e.g. plan downgrade)
+    await pruneLockedBatches(entitledBatches || 1);
+
+    const total = await countAllPuzzles();
+    const perLevel = LEVELS.map(l => {
+      const max = Math.min(Number(catalog.counts?.[l] || 0), entitledBatches * 100);
+      return `${l}: ${max.toLocaleString()}`;
+    }).join(' · ');
+
+    if (currentPlan === 'Basic') {
+      $('planstatus').textContent = `Basic · Up to 100 starting puzzles per level; 100 more per level unlock on each monthly anniversary from your first launch.`;
+    } else {
+      $('planstatus').textContent = `${currentPlan} · Full puzzle collection unlocked.`;
+    }
+    status(`${total.toLocaleString()} puzzles ready · ${perLevel}`);
+  } catch (e) {
+    console.warn('Puzzle sync error:', e);
+    status('Using saved puzzles · ' + (e.message || 'catalogue sync unavailable'));
+    $('planstatus').textContent = 'Basic access · saved puzzles remain available offline.';
+  }
+}
+
+async function pruneLockedBatches(maxBatch) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).openCursor();
+    req.onsuccess = () => {
+      const c = req.result;
+      if (!c) return;
+      const batch = Number(c.value.accessBatch) || 1;
+      if (batch > maxBatch) c.delete();
+      c.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function bootstrapPack() {
+  const pack = Array.isArray(window.CHESS_FORGE_PUZZLES) ? window.CHESS_FORGE_PUZZLES : [];
+  if (pack.length) {
+    const imported = await getMeta('release_pack_id');
+    const packId = window.CHESS_FORGE_PACK_ID || ('pack-' + pack.length);
+    if (imported !== packId) {
+      const ready = pack.map(p => {
+        const level = p.level || 'Easy';
+        const difficultyScore = Number(p.difficultyScore) || Number(p.rating) || 0;
+        return { ...p, level, difficultyScore, accessBatch: 1, displayOrder: 1000000 + (100000 - difficultyScore) };
+      }).filter(p => p.id && p.fen && p.moves && p.level);
+      await putMany(ready);
+      await putMeta('release_pack_id', packId);
+    }
+  }
+  return countAllPuzzles();
+}
+
+// ---------- UI: Home levels ----------
+async function drawLevels() {
+  const grid = $('levelgrid');
+  grid.innerHTML = '';
+  for (const level of LEVELS) {
+    const count = await countLevel(level);
+    const btn = document.createElement('button');
+    btn.className = 'level';
+    btn.innerHTML = `<strong>${level}</strong><small>${LEVEL_RANGE[level]} · ${count} available</small>`;
+    btn.onclick = () => openLevel(level);
+    grid.appendChild(btn);
+  }
+}
+
+function drawStats() {
+  $('solvedstat').textContent = stats.solved || 0;
+  $('streakstat').textContent = stats.streak || 0;
+  $('beststat').textContent = stats.best || 0;
+  const total = (stats.solved || 0) + (stats.mistakes || 0);
+  $('accuracyStat').textContent = total ? Math.round((stats.solved / total) * 100) + '%' : '—';
+  $('totalstats').textContent = `${stats.solved || 0} solved · ${stats.mistakes || 0} mistakes`;
+}
+
+// ---------- List view ----------
+async function openLevel(level) {
+  currentLevel = level;
+  show('list');
+  $('listtitle').textContent = level;
+  const all = await allLevel(level);
+  all.sort((a, b) => (a.displayOrder - b.displayOrder) || a.id.localeCompare(b.id));
+  $('listcount').textContent = all.length + ' puzzles';
+
+  const progress = Number(await getMeta('progress_' + level) || 0);
+  const pct = all.length ? Math.min(100, Math.round((progress / all.length) * 100)) : 0;
+  $('levelbar').style.width = pct + '%';
+  $('unlockmsg').textContent = progress < all.length
+    ? `Solved ${progress} · ${all.length - progress} remaining`
+    : 'All available puzzles in this level solved!';
+  $('pageLabel').textContent = `Showing 1–${all.length} of ${all.length}`;
+
+  const numbers = $('numbers');
+  numbers.innerHTML = '';
+  all.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.textContent = i + 1;
+    if (i < progress) b.classList.add('done');
+    if (i === progress) b.classList.add('current');
+    b.onclick = () => openPuzzle(p, i + 1, all.length);
+    numbers.appendChild(b);
+  });
+}
+
+// ---------- Chess engine (compact but complete enough for puzzles) ----------
+function parseFen(fen) {
+  const parts = fen.trim().split(/\s+/);
+  const board = new Array(64).fill(null);
+  let r = 0, c = 0;
+  for (const ch of parts[0]) {
+    if (ch === '/') { r++; c = 0; continue; }
+    if (/\d/.test(ch)) { c += +ch; continue; }
+    board[r * 8 + c] = ch;
+    c++;
+  }
+  return {
+    b: board,
+    turn: parts[1] || 'w',
+    castle: parts[2] || '-',
+    ep: parts[3] === '-' ? -1 : (8 - parseInt(parts[3][1])) * 8 + (parts[3].charCodeAt(0) - 97),
+    half: parseInt(parts[4] || '0', 10),
+    full: parseInt(parts[5] || '1', 10)
+  };
+}
+
+function toUci(sq) {
+  return String.fromCharCode(97 + (sq % 8)) + (8 - Math.floor(sq / 8));
+}
+
+function fromUci(uci) {
+  if (!uci || uci.length < 4) return null;
+  const c1 = uci.charCodeAt(0) - 97, r1 = 8 - parseInt(uci[1], 10);
+  const c2 = uci.charCodeAt(2) - 97, r2 = 8 - parseInt(uci[3], 10);
+  return { from: r1 * 8 + c1, to: r2 * 8 + c2, promo: uci[4] || null };
+}
+
+function cloneGame(g) {
+  return { b: g.b.slice(), turn: g.turn, castle: g.castle, ep: g.ep, half: g.half, full: g.full };
+}
+
+function isWhite(p) { return p && p === p.toUpperCase(); }
+
+function attacks(g, sq, byWhite) {
+  // Simplified attack detection used for check
+  const enemy = byWhite ? 'white' : 'black';
+  // We will generate all pseudo moves of the side and see if any target the king
+  const king = byWhite ? 'K' : 'k';
+  let kingSq = -1;
+  for (let i = 0; i < 64; i++) if (g.b[i] === king) { kingSq = i; break; }
+  if (kingSq < 0) return false;
+  const moves = generateMoves(g, byWhite, true);
+  return moves.some(m => m.to === kingSq);
+}
+
+function inCheck(g, white) {
+  return attacks(g, null, !white);
+}
+
+function generateMoves(g, whiteSide, ignoreCheck = false) {
+  const moves = [];
+  const dir = whiteSide ? -1 : 1;
+  const enemy = p => p && (isWhite(p) !== whiteSide);
+
+  function add(from, to, promo) {
+    if (to < 0 || to > 63) return;
+    const target = g.b[to];
+    if (target && isWhite(target) === whiteSide) return;
+    moves.push({ from, to, promo: promo || null, capture: !!target });
+  }
+
+  for (let sq = 0; sq < 64; sq++) {
+    const p = g.b[sq];
+    if (!p || isWhite(p) !== whiteSide) continue;
+    const type = p.toUpperCase();
+    const r = Math.floor(sq / 8), c = sq % 8;
+
+    if (type === 'P') {
+      const one = sq + dir * 8;
+      if (one >= 0 && one < 64 && !g.b[one]) {
+        if ((whiteSide && r === 1) || (!whiteSide && r === 6)) {
+          add(sq, one, 'q'); add(sq, one, 'r'); add(sq, one, 'b'); add(sq, one, 'n');
+        } else add(sq, one);
+        const two = sq + dir * 16;
+        if (((whiteSide && r === 6) || (!whiteSide && r === 1)) && !g.b[two]) add(sq, two);
+      }
+      for (const dc of [-1, 1]) {
+        const cap = sq + dir * 8 + dc;
+        if (cap < 0 || cap > 63) continue;
+        if (Math.abs((cap % 8) - c) !== 1) continue;
+        if (enemy(g.b[cap]) || cap === g.ep) {
+          if ((whiteSide && r === 1) || (!whiteSide && r === 6)) {
+            add(sq, cap, 'q'); add(sq, cap, 'r'); add(sq, cap, 'b'); add(sq, cap, 'n');
+          } else add(sq, cap);
+        }
+      }
+    } else if (type === 'N') {
+      for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+        add(sq, nr * 8 + nc);
+      }
+    } else if (type === 'B' || type === 'R' || type === 'Q') {
+      const rays = [];
+      if (type !== 'R') rays.push([-1,-1],[-1,1],[1,-1],[1,1]);
+      if (type !== 'B') rays.push([-1,0],[1,0],[0,-1],[0,1]);
+      for (const [dr, dc] of rays) {
+        let nr = r + dr, nc = c + dc;
+        while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+          const to = nr * 8 + nc;
+          add(sq, to);
+          if (g.b[to]) break;
+          nr += dr; nc += dc;
+        }
+      }
+    } else if (type === 'K') {
+      for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+        add(sq, nr * 8 + nc);
+      }
+      // Castling (simplified)
+      if (whiteSide && r === 7 && c === 4) {
+        if (g.castle.includes('K') && !g.b[61] && !g.b[62]) add(sq, 62);
+        if (g.castle.includes('Q') && !g.b[59] && !g.b[58] && !g.b[57]) add(sq, 58);
+      }
+      if (!whiteSide && r === 0 && c === 4) {
+        if (g.castle.includes('k') && !g.b[5] && !g.b[6]) add(sq, 6);
+        if (g.castle.includes('q') && !g.b[3] && !g.b[2] && !g.b[1]) add(sq, 2);
+      }
+    }
+  }
+
+  if (ignoreCheck) return moves;
+
+  // Filter moves that leave own king in check
+  const legal = [];
+  for (const m of moves) {
+    const g2 = makeMove(g, m);
+    if (!inCheck(g2, whiteSide)) legal.push(m);
+  }
+  return legal;
+}
+
+function makeMove(g, m) {
+  const g2 = cloneGame(g);
+  const piece = g2.b[m.from];
+  g2.b[m.to] = m.promo ? (isWhite(piece) ? m.promo.toUpperCase() : m.promo.toLowerCase()) : piece;
+  g2.b[m.from] = null;
+
+  // En passant capture
+  if (piece.toUpperCase() === 'P' && m.to === g.ep) {
+    g2.b[m.to + (isWhite(piece) ? 8 : -8)] = null;
+  }
+  // Castling rook move
+  if (piece.toUpperCase() === 'K' && Math.abs(m.to - m.from) === 2) {
+    if (m.to === 62) { g2.b[61] = 'R'; g2.b[63] = null; }
+    if (m.to === 58) { g2.b[59] = 'R'; g2.b[56] = null; }
+    if (m.to === 6)  { g2.b[5] = 'r'; g2.b[7] = null; }
+    if (m.to === 2)  { g2.b[3] = 'r'; g2.b[0] = null; }
+  }
+
+  // Update ep
+  g2.ep = -1;
+  if (piece.toUpperCase() === 'P' && Math.abs(m.to - m.from) === 16) {
+    g2.ep = (m.from + m.to) / 2;
+  }
+
+  // Update castling rights (simple)
+  let castle = g2.castle;
+  if (piece === 'K') castle = castle.replace('K','').replace('Q','');
+  if (piece === 'k') castle = castle.replace('k','').replace('q','');
+  if (m.from === 63 || m.to === 63) castle = castle.replace('K','');
+  if (m.from === 56 || m.to === 56) castle = castle.replace('Q','');
+  if (m.from === 7  || m.to === 7)  castle = castle.replace('k','');
+  if (m.from === 0  || m.to === 0)  castle = castle.replace('q','');
+  g2.castle = castle || '-';
+
+  g2.turn = g.turn === 'w' ? 'b' : 'w';
+  g2.half = (piece.toUpperCase() === 'P' || m.capture) ? 0 : g.half + 1;
+  if (g.turn === 'b') g2.full = g.full + 1;
+  return g2;
+}
+
+// ---------- Board rendering ----------
+function applyBoardTheme() {
+  const theme = $('boardtheme').value;
+  const root = document.documentElement;
+  if (theme === 'forest') {
+    root.style.setProperty('--light', '#e8f0d8');
+    root.style.setProperty('--dark', '#6b8f5a');
+  } else if (theme === 'midnight') {
+    root.style.setProperty('--light', '#c5d0e0');
+    root.style.setProperty('--dark', '#3a4a6b');
+  } else if (theme === 'wood') {
+    root.style.setProperty('--light', '#f0d9b5');
+    root.style.setProperty('--dark', '#b58863');
+  } else {
+    root.style.setProperty('--light', '#e9edf3');
+    root.style.setProperty('--dark', '#7892a7');
+  }
+}
+
+function renderBoard() {
+  const board = $('board');
+  board.innerHTML = '';
+  if (!game) return;
+  for (let i = 0; i < 64; i++) {
+    const disp = flipped ? 63 - i : i;
+    const r = Math.floor(disp / 8), c = disp % 8;
+    const sq = document.createElement('div');
+    const isLight = (r + c) % 2 === 0;
+    sq.className = 'sq ' + (isLight ? 'light' : 'dark');
+    if (selected === disp) sq.classList.add('selected');
+    if (lastMove && (lastMove.from === disp || lastMove.to === disp)) sq.classList.add('last');
+    const piece = game.b[disp];
+    if (piece) sq.textContent = PIECE[piece] || piece;
+    // coordinates
+    if (c === 0) {
+      const coord = document.createElement('span');
+      coord.className = 'coords';
+      coord.style.left = '2px'; coord.style.top = '1px';
+      coord.textContent = flipped ? (r + 1) : (8 - r);
+      sq.appendChild(coord);
+    }
+    if (r === 7) {
+      const coord = document.createElement('span');
+      coord.className = 'coords';
+      coord.style.right = '2px'; coord.style.bottom = '1px';
+      coord.textContent = String.fromCharCode(97 + (flipped ? 7 - c : c));
+      sq.appendChild(coord);
+    }
+    sq.onclick = () => onSquareClick(disp);
+    board.appendChild(sq);
+  }
+}
+
+function highlightMoves(from) {
+  renderBoard();
+  if (from < 0 || !$('hints').checked) return;
+  const white = game.turn === 'w';
+  const moves = generateMoves(game, white).filter(m => m.from === from);
+  const board = $('board');
+  moves.forEach(m => {
+    const idx = flipped ? 63 - m.to : m.to;
+    const el = board.children[idx];
+    if (el) el.classList.add('hint');
+  });
+}
+
+// ---------- Play logic ----------
+function openPuzzle(p, num, total) {
+  currentPuzzle = p;
+  show('play');
+  $('puzzlelabel').textContent = `${p.level} · Puzzle ${num}`;
+  $('rating').textContent = `Lichess rating: ${p.rating || p.difficultyScore || '—'}`;
+  $('tasktitle').textContent = (p.themes || '').includes('mate') ? 'Find the mate' : 'Solve the puzzle';
+  $('taskdesc').textContent = (p.themes || 'Find the best continuation').replace(/,/g, ' · ');
+  $('status').textContent = 'Your turn. Find the winning continuation.';
+  $('status').style.color = '';
+  $('nextbtn').disabled = true;
+  $('replybtn').classList.add('hidden');
+  solutionIndex = 0;
+  waitingForOpponent = false;
+  moveHistory = [];
+  selected = -1;
+  lastMove = null;
+
+  game = parseFen(p.fen);
+  // Puzzle side to move is already set in the FEN
+  flipped = game.turn === 'b'; // black to move → show black at bottom
+  renderBoard();
+}
+
+function onSquareClick(sq) {
+  if (!game || !currentPuzzle || waitingForOpponent) return;
+  const white = game.turn === 'w';
+  const piece = game.b[sq];
+
+  if (selected >= 0) {
+    const moves = generateMoves(game, white).filter(m => m.from === selected && m.to === sq);
+    if (moves.length) {
+      // Prefer queen promo if multiple
+      const m = moves.find(x => !x.promo) || moves.find(x => x.promo === 'q') || moves[0];
+      tryPlayerMove(m);
+      return;
+    }
+    selected = -1;
+    renderBoard();
+    return;
+  }
+
+  if (piece && isWhite(piece) === white) {
+    selected = sq;
+    highlightMoves(sq);
+  }
+}
+
+function tryPlayerMove(m) {
+  const expected = (currentPuzzle.moves || '').trim().split(/\s+/);
+  const playerUci = toUci(m.from) + toUci(m.to) + (m.promo || '');
+  const want = expected[solutionIndex];
+
+  if (!want || playerUci.toLowerCase() !== want.toLowerCase()) {
+    // Wrong move
+    stats.mistakes = (stats.mistakes || 0) + 1;
+    stats.streak = 0;
+    putMeta('stats', stats);
+    drawStats();
+    $('status').textContent = 'Incorrect. Try again.';
+    $('status').style.color = 'var(--bad)';
+    selected = -1;
+    renderBoard();
+    return;
+  }
+
+  // Correct
+  game = makeMove(game, m);
+  lastMove = m;
+  solutionIndex++;
+  selected = -1;
+  moveHistory.push(playerUci);
+  renderBoard();
+
+  if (solutionIndex >= expected.length) {
+    // Solved
+    finishPuzzle(true);
+    return;
+  }
+
+  // Opponent reply next
+  $('status').textContent = 'Correct! Opponent to move…';
+  $('status').style.color = 'var(--accent)';
+  waitingForOpponent = true;
+
+  if ($('auto').checked) {
+    setTimeout(playOpponentReply, 450);
+  } else {
+    $('replybtn').classList.remove('hidden');
+  }
+}
+
+function playOpponentReply() {
+  if (!currentPuzzle || !waitingForOpponent) return;
+  const expected = (currentPuzzle.moves || '').trim().split(/\s+/);
+  const reply = expected[solutionIndex];
+  if (!reply) { finishPuzzle(true); return; }
+
+  const parsed = fromUci(reply);
+  if (!parsed) { finishPuzzle(true); return; }
+
+  const white = game.turn === 'w';
+  const legal = generateMoves(game, white);
+  const m = legal.find(x => x.from === parsed.from && x.to === parsed.to && (!parsed.promo || x.promo === parsed.promo))
+          || { from: parsed.from, to: parsed.to, promo: parsed.promo };
+
+  game = makeMove(game, m);
+  lastMove = m;
+  solutionIndex++;
+  waitingForOpponent = false;
+  $('replybtn').classList.add('hidden');
+  renderBoard();
+
+  if (solutionIndex >= expected.length) {
+    finishPuzzle(true);
+  } else {
+    $('status').textContent = 'Your turn.';
+    $('status').style.color = '';
+  }
+}
+
+async function finishPuzzle(success) {
+  waitingForOpponent = false;
+  if (success) {
+    stats.solved = (stats.solved || 0) + 1;
+    stats.streak = (stats.streak || 0) + 1;
+    stats.best = Math.max(stats.best || 0, stats.streak);
+    await putMeta('stats', stats);
+    drawStats();
+
+    // Advance progress for this level
+    const prog = Number(await getMeta('progress_' + currentLevel) || 0);
+    // We only advance if this was the next expected puzzle (simple sequential unlock)
+    // For simplicity we just mark higher progress based on the number shown
+    $('status').textContent = 'Puzzle solved!';
+    $('status').style.color = 'var(--accent)';
+    $('nextbtn').disabled = false;
+  }
+}
+
+// ---------- Event bindings ----------
+$('backhome').onclick = () => { show('home'); drawLevels(); };
+$('backlist').onclick = () => openLevel(currentLevel);
+$('resume').onclick = async () => {
+  // Open the level with the most remaining puzzles or first with content
+  for (const l of LEVELS) {
+    const n = await countLevel(l);
+    if (n) { openLevel(l); return; }
+  }
+  alert('No puzzles loaded yet.');
+};
+$('flip').onclick = () => { flipped = !flipped; renderBoard(); };
+$('resetbtn').onclick = () => {
+  if (currentPuzzle) openPuzzle(currentPuzzle, 0, 0);
+};
+$('hintbtn').onclick = () => {
+  if (!game || selected < 0) {
+    $('hinttext').textContent = 'Select one of your pieces first, then tap “Show board hint”.';
+    return;
+  }
+  highlightMoves(selected);
+};
+$('solutionbtn').onclick = () => {
+  if (!currentPuzzle) return;
+  $('status').textContent = 'Solution: ' + (currentPuzzle.moves || '');
+  $('status').style.color = 'var(--gold)';
+};
+$('replybtn').onclick = playOpponentReply;
+$('nextbtn').onclick = async () => {
+  // Go back to list so user can pick the next number
+  openLevel(currentLevel);
+};
+$('boardtheme').onchange = applyBoardTheme;
+$('forceReload').onclick = async () => {
+  if (!confirm('Clear downloaded puzzles and re-fetch from the server?')) return;
+  await clearPuzzleStore();
+  await putMeta('downloaded_data_batches', []);
+  await putMeta('data_catalog_version', null);
+  $('packstatus').textContent = 'Reloading…';
+  await syncPuzzleBatches();
+  await drawLevels();
+  const n = await countAllPuzzles();
+  if (!n) $('packstatus').textContent = 'No puzzles found. Make sure data/ folder is present and you are on http:// or https://';
+};
+
+// ---------- Init ----------
+async function init() {
+  try {
+    await openDB();
+    await ensureBasicStartDate();
+    stats = (await getMeta('stats')) || stats;
+    drawStats();
+    await syncPuzzleBatches();
+    await bootstrapPack();
+    await drawLevels();
+
+    const stored = await countAllPuzzles();
+    if (!stored && location.protocol !== 'file:') {
+      $('packstatus').textContent = 'No puzzles imported yet · owner must run the CSV importer and redeploy the data/ folder';
+    }
+  } catch (e) {
+    console.error(e);
+    $('packstatus').textContent = 'Puzzle storage unavailable: ' + (e.message || e);
+  }
+}
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+
+init();
+})();
+</script>
+</body>
+</html>
