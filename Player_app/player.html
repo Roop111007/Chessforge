@@ -359,25 +359,7 @@ function clearPuzzleStore() {
 }
 
 // ---------- Access / monthly unlock ----------
-function completedCalendarMonths(startValue, nowValue = Date.now()) {
-  const start = new Date(startValue);
-  const now = new Date(nowValue);
-  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const anniversaryDay = Math.min(start.getDate(), lastDay);
-  if (now.getDate() < anniversaryDay) months--;
-  return Math.max(0, months);
-}
-
-async function ensureBasicStartDate() {
-  let saved = await getMeta('basic_started_at');
-  if (!Number.isFinite(Number(saved)) || Number(saved) <= 0) {
-    saved = Date.now();
-    await putMeta('basic_started_at', saved);
-  }
-  basicStartAt = Number(saved);
-}
-
+// ---------- Access control ----------
 async function getVerifiedPlan() {
   try {
     const response = await fetch('./api/entitlement', { cache: 'no-store', credentials: 'include' });
@@ -389,6 +371,13 @@ async function getVerifiedPlan() {
     }
   } catch (e) { /* offline or not configured → Basic */ }
   return 'Basic';
+}
+
+/** How many puzzles Basic users can see for each level */
+function basicLimitForLevel(level) {
+  if (level === 'Easy' || level === 'Medium' || level === 'Hard') return Infinity; // all free
+  if (level === 'Tough' || level === 'Unbeatable') return 10;                     // only 10 free
+  return 0;
 }
 
 // ---------- Load puzzle batches ----------
