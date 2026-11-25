@@ -54,14 +54,33 @@ select{padding:9px}
 .game{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
 @media(max-width:860px){.game{grid-template-columns:1fr}.metricgrid{grid-template-columns:repeat(2,1fr)}}
 .boardwrap{background:linear-gradient(145deg,#17263b,#111a2a);border:1px solid #ffffff19;border-radius:18px;padding:14px}
-.board{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,520px);aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+.board-area{display:flex;gap:10px;align-items:stretch;max-width:min(100%,540px)}
+.board{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,520px);aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation;flex:1}
 .sq{display:flex;align-items:center;justify-content:center;font-size:clamp(22px,5.2vw,42px);position:relative;cursor:pointer}
 .sq.light{background:var(--light)}
 .sq.dark{background:var(--dark)}
 .sq.hint{background:var(--sqHint)!important}
+.sq.engine-from{box-shadow:inset 0 0 0 3px #79d6bd}
+.sq.engine-to{background:#79d6bd66!important}
 .sq.selected{box-shadow:inset 0 0 0 3px #79d6bd}
 .sq.last{box-shadow:inset 0 0 0 3px #f3c96988}
 .coords{position:absolute;font-size:10px;opacity:.55;pointer-events:none}
+.evalbar{
+  width:22px;border-radius:8px;overflow:hidden;background:#1a1a1a;border:1px solid #ffffff22;
+  display:flex;flex-direction:column;position:relative;min-height:120px;flex-shrink:0;
+}
+.evalbar .fill{
+  position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#f0f0f0,#e8e8e8);
+  height:50%;transition:height .35s ease;
+}
+.evalbar .fill.black-adv{background:linear-gradient(180deg,#3a3a3a,#1a1a1a)}
+.evalbar .score{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#111;text-shadow:0 0 3px #fff8;pointer-events:none;
+  writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.04em;
+}
+.evalbar .score.light{color:#eee;text-shadow:0 0 3px #000a}
+.engine-line{font-size:12px;color:var(--muted);margin:6px 0 0;min-height:1.3em}
 .sidepanel h2{margin-top:0}
 .warn{background:#3a1f1f;border:1px solid #ff858566;color:#ffc9c9;padding:14px 16px;border-radius:12px;margin-bottom:16px}
 .warn code{background:#0004;padding:2px 6px;border-radius:4px}
@@ -80,14 +99,14 @@ select{padding:9px}
     <div id="fileWarn" class="warn hidden">
       <strong>You are opening this file directly (file://).</strong><br>
       Browsers block loading the puzzle data this way.<br><br>
-      Fix: open a terminal in the <code>1_Player_App</code> folder and run:<br>
+      Fix: open a terminal in the <code>Player_app</code> folder and run:<br>
       <code>python3 -m http.server 8080</code><br>
       then visit <code>http://localhost:8080</code>
     </div>
 
     <div class="panel">
       <h1>Train beyond your limits.</h1>
-      <p>Choose a difficulty and play. Progress is saved on this device. Basic users unlock 100 new puzzles per level every month.</p>
+      <p>Choose a difficulty and play. Progress is saved on this device. Basic users unlock additional puzzle batches every month.</p>
       <div class="row">
         <button class="primary" id="resume">Continue training</button>
         <span class="small muted" id="packstatus">Preparing puzzle collection…</span>
@@ -100,7 +119,7 @@ select{padding:9px}
     <div class="panel">
       <h2>Membership access</h2>
       <p id="planstatus">Checking access…</p>
-      <p class="small muted">Basic starts with the first 100 puzzles per level. Each monthly anniversary of your first launch unlocks the next 100. Premium/Ultimate unlocks everything immediately (requires server verification).</p>
+      <p class="small muted">Basic starts with the first batch of puzzles per level. Each monthly anniversary of your first launch unlocks the next batch. Premium/Ultimate unlocks everything immediately (requires server verification).</p>
     </div>
 
     <div class="panel">
@@ -165,18 +184,26 @@ select{padding:9px}
     </div>
     <div class="game">
       <div class="boardwrap">
-        <div class="board" id="board"></div>
+        <div class="board-area">
+          <div class="evalbar" id="evalbar" title="Engine evaluation (from White's perspective)">
+            <div class="fill" id="evalfill"></div>
+            <div class="score" id="evalscore">—</div>
+          </div>
+          <div class="board" id="board"></div>
+        </div>
         <div class="row" style="justify-content:space-between;margin-top:10px">
           <button id="flip" class="ghost">⇅ Flip board</button>
           <span class="small muted" id="rating"></span>
         </div>
+        <p class="engine-line" id="engineline">Engine: starting…</p>
       </div>
       <div class="panel sidepanel">
         <h2 id="tasktitle">Solve the puzzle</h2>
         <p id="taskdesc">Find the best continuation.</p>
         <div class="status" id="status">Your move.</div>
         <div class="row">
-          <button class="primary" id="hintbtn">Show board hint</button>
+          <button class="primary" id="hintbtn">Engine hint</button>
+          <button id="legalhintbtn" class="ghost">Legal moves</button>
           <button id="resetbtn">Reset</button>
         </div>
         <div class="row" style="margin-top:9px">
@@ -184,7 +211,7 @@ select{padding:9px}
           <button id="replybtn" class="ghost hidden">Play opponent reply</button>
           <button id="nextbtn" class="primary" disabled>Next puzzle →</button>
         </div>
-        <p class="small muted" id="hinttext">Tap one of your pieces to see its legal moves.</p>
+        <p class="small muted" id="hinttext">Engine hint shows Stockfish’s best move. Legal moves highlights the selected piece.</p>
       </div>
     </div>
   </section>
@@ -225,6 +252,12 @@ let lastMove = null;
 let solutionIndex = 0;
 let waitingForOpponent = false;
 let moveHistory = [];
+let engineBest = null; // { from, to, promo, uci, scoreText }
+let engineReady = false;
+let engineAnalyzing = false;
+let engineWorker = null;
+let engineDepth = 14;
+let engineSearchId = 0;
 
 // ---------- DOM helpers ----------
 const $ = id => document.getElementById(id);
@@ -408,12 +441,14 @@ async function syncPuzzleBatches() {
 
     let done = 0;
     for (const n of required) {
-      const file = 'batch-' + String(n).padStart(6, '0') + '.json';
+      // Files on disk are named puzzles-batch-001.json … (3-digit). Internal "batch"
+      // field is not always sequential with the filename, so we trust the filename order.
+      const file = 'puzzles-batch-' + String(n).padStart(3, '0') + '.json';
       status(`Downloading batch ${n}… (${done + 1}/${required.length})`);
       const r = await fetch('./data/' + file + '?v=' + encodeURIComponent(catalog.version || '1'), { cache: 'no-store' });
       if (!r.ok) throw new Error('Cannot download ' + file + ' (HTTP ' + r.status + ')');
       const batch = await r.json();
-      if (!batch || batch.schemaVersion !== 1 || batch.batch !== n || !batch.puzzles) {
+      if (!batch || batch.schemaVersion !== 1 || !batch.puzzles) {
         throw new Error('Invalid puzzle batch ' + n);
       }
 
@@ -443,13 +478,14 @@ async function syncPuzzleBatches() {
     await pruneLockedBatches(entitledBatches || 1);
 
     const total = await countAllPuzzles();
+    const batchSize = Number(catalog.batchSizePerLevel) || 1000;
     const perLevel = LEVELS.map(l => {
-      const max = Math.min(Number(catalog.counts?.[l] || 0), entitledBatches * 100);
+      const max = Math.min(Number(catalog.counts?.[l] || 0), entitledBatches * batchSize);
       return `${l}: ${max.toLocaleString()}`;
     }).join(' · ');
 
     if (currentPlan === 'Basic') {
-      $('planstatus').textContent = `Basic · Up to 100 starting puzzles per level; 100 more per level unlock on each monthly anniversary from your first launch.`;
+      $('planstatus').textContent = `Basic · Starting with the first batch of puzzles per level; one more batch unlocks on each monthly anniversary from your first launch.`;
     } else {
       $('planstatus').textContent = `${currentPlan} · Full puzzle collection unlocked.`;
     }
@@ -547,7 +583,7 @@ async function openLevel(level) {
   });
 }
 
-// ---------- Chess engine (compact but complete enough for puzzles) ----------
+// ---------- Chess engine (legal moves, en passant, castling, promotions) ----------
 function parseFen(fen) {
   const parts = fen.trim().split(/\s+/);
   const board = new Array(64).fill(null);
@@ -562,7 +598,7 @@ function parseFen(fen) {
     b: board,
     turn: parts[1] || 'w',
     castle: parts[2] || '-',
-    ep: parts[3] === '-' ? -1 : (8 - parseInt(parts[3][1])) * 8 + (parts[3].charCodeAt(0) - 97),
+    ep: parts[3] === '-' ? -1 : (8 - parseInt(parts[3][1], 10)) * 8 + (parts[3].charCodeAt(0) - 97),
     half: parseInt(parts[4] || '0', 10),
     full: parseInt(parts[5] || '1', 10)
   };
@@ -585,20 +621,68 @@ function cloneGame(g) {
 
 function isWhite(p) { return p && p === p.toUpperCase(); }
 
-function attacks(g, sq, byWhite) {
-  // Simplified attack detection used for check
-  const enemy = byWhite ? 'white' : 'black';
-  // We will generate all pseudo moves of the side and see if any target the king
-  const king = byWhite ? 'K' : 'k';
-  let kingSq = -1;
-  for (let i = 0; i < 64; i++) if (g.b[i] === king) { kingSq = i; break; }
-  if (kingSq < 0) return false;
-  const moves = generateMoves(g, byWhite, true);
-  return moves.some(m => m.to === kingSq);
+/** Does the side `byWhite` attack square `sq`? (pseudo-legal, no pin/check filter) */
+function squareAttacked(g, sq, byWhite) {
+  const r = Math.floor(sq / 8), c = sq % 8;
+  const enemyPawn = byWhite ? 'P' : 'p';
+  const enemyKnight = byWhite ? 'N' : 'n';
+  const enemyBishop = byWhite ? 'B' : 'b';
+  const enemyRook = byWhite ? 'R' : 'r';
+  const enemyQueen = byWhite ? 'Q' : 'q';
+  const enemyKing = byWhite ? 'K' : 'k';
+
+  // Pawns (attack one diagonal forward from their perspective)
+  const pDir = byWhite ? 1 : -1; // white pawns sit on higher index when attacking "up" toward black
+  for (const dc of [-1, 1]) {
+    const pr = r + pDir, pc = c + dc;
+    if (pr < 0 || pr > 7 || pc < 0 || pc > 7) continue;
+    if (g.b[pr * 8 + pc] === enemyPawn) return true;
+  }
+
+  // Knights
+  for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+    if (g.b[nr * 8 + nc] === enemyKnight) return true;
+  }
+
+  // King
+  for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
+    if (g.b[nr * 8 + nc] === enemyKing) return true;
+  }
+
+  // Sliding pieces: bishop/queen diagonals, rook/queen orthogonals
+  for (const [dirs, pieceA, pieceB] of [
+    [[[-1,-1],[-1,1],[1,-1],[1,1]], enemyBishop, enemyQueen],
+    [[[-1,0],[1,0],[0,-1],[0,1]], enemyRook, enemyQueen]
+  ]) {
+    for (const [dr, dc] of dirs) {
+      let nr = r + dr, nc = c + dc;
+      while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+        const p = g.b[nr * 8 + nc];
+        if (p) {
+          if (p === pieceA || p === pieceB) return true;
+          break;
+        }
+        nr += dr; nc += dc;
+      }
+    }
+  }
+  return false;
+}
+
+function findKing(g, white) {
+  const k = white ? 'K' : 'k';
+  for (let i = 0; i < 64; i++) if (g.b[i] === k) return i;
+  return -1;
 }
 
 function inCheck(g, white) {
-  return attacks(g, null, !white);
+  const kingSq = findKing(g, white);
+  if (kingSq < 0) return false;
+  return squareAttacked(g, kingSq, !white);
 }
 
 function generateMoves(g, whiteSide, ignoreCheck = false) {
@@ -610,7 +694,7 @@ function generateMoves(g, whiteSide, ignoreCheck = false) {
     if (to < 0 || to > 63) return;
     const target = g.b[to];
     if (target && isWhite(target) === whiteSide) return;
-    moves.push({ from, to, promo: promo || null, capture: !!target });
+    moves.push({ from, to, promo: promo || null, capture: !!target || (to === g.ep && g.b[from] && g.b[from].toUpperCase() === 'P') });
   }
 
   for (let sq = 0; sq < 64; sq++) {
@@ -622,20 +706,28 @@ function generateMoves(g, whiteSide, ignoreCheck = false) {
     if (type === 'P') {
       const one = sq + dir * 8;
       if (one >= 0 && one < 64 && !g.b[one]) {
+        // Promotion ranks: white from r=1 (rank 7) → r=0; black from r=6 (rank 2) → r=7
         if ((whiteSide && r === 1) || (!whiteSide && r === 6)) {
           add(sq, one, 'q'); add(sq, one, 'r'); add(sq, one, 'b'); add(sq, one, 'n');
-        } else add(sq, one);
-        const two = sq + dir * 16;
-        if (((whiteSide && r === 6) || (!whiteSide && r === 1)) && !g.b[two]) add(sq, two);
+        } else {
+          add(sq, one);
+          const two = sq + dir * 16;
+          if (((whiteSide && r === 6) || (!whiteSide && r === 1)) && two >= 0 && two < 64 && !g.b[two]) {
+            add(sq, two);
+          }
+        }
       }
+      // Captures (including en passant)
       for (const dc of [-1, 1]) {
         const cap = sq + dir * 8 + dc;
         if (cap < 0 || cap > 63) continue;
         if (Math.abs((cap % 8) - c) !== 1) continue;
-        if (enemy(g.b[cap]) || cap === g.ep) {
+        if (enemy(g.b[cap]) || (cap === g.ep && g.ep >= 0)) {
           if ((whiteSide && r === 1) || (!whiteSide && r === 6)) {
             add(sq, cap, 'q'); add(sq, cap, 'r'); add(sq, cap, 'b'); add(sq, cap, 'n');
-          } else add(sq, cap);
+          } else {
+            add(sq, cap);
+          }
         }
       }
     } else if (type === 'N') {
@@ -663,21 +755,45 @@ function generateMoves(g, whiteSide, ignoreCheck = false) {
         if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
         add(sq, nr * 8 + nc);
       }
-      // Castling (simplified)
-      if (whiteSide && r === 7 && c === 4) {
-        if (g.castle.includes('K') && !g.b[61] && !g.b[62]) add(sq, 62);
-        if (g.castle.includes('Q') && !g.b[59] && !g.b[58] && !g.b[57]) add(sq, 58);
-      }
-      if (!whiteSide && r === 0 && c === 4) {
-        if (g.castle.includes('k') && !g.b[5] && !g.b[6]) add(sq, 6);
-        if (g.castle.includes('q') && !g.b[3] && !g.b[2] && !g.b[1]) add(sq, 2);
+      // Castling — only when not in check; path must be empty and not attacked
+      if (!ignoreCheck && !inCheck(g, whiteSide)) {
+        if (whiteSide && r === 7 && c === 4) {
+          if (g.castle.includes('K') && !g.b[61] && !g.b[62]
+              && !squareAttacked(g, 61, false) && !squareAttacked(g, 62, false)) {
+            add(sq, 62);
+          }
+          if (g.castle.includes('Q') && !g.b[59] && !g.b[58] && !g.b[57]
+              && !squareAttacked(g, 59, false) && !squareAttacked(g, 58, false)) {
+            add(sq, 58);
+          }
+        }
+        if (!whiteSide && r === 0 && c === 4) {
+          if (g.castle.includes('k') && !g.b[5] && !g.b[6]
+              && !squareAttacked(g, 5, true) && !squareAttacked(g, 6, true)) {
+            add(sq, 6);
+          }
+          if (g.castle.includes('q') && !g.b[3] && !g.b[2] && !g.b[1]
+              && !squareAttacked(g, 3, true) && !squareAttacked(g, 2, true)) {
+            add(sq, 2);
+          }
+        }
+      } else if (ignoreCheck) {
+        // Pseudo-legal castling (path empty only) for attack detection callers
+        if (whiteSide && r === 7 && c === 4) {
+          if (g.castle.includes('K') && !g.b[61] && !g.b[62]) add(sq, 62);
+          if (g.castle.includes('Q') && !g.b[59] && !g.b[58] && !g.b[57]) add(sq, 58);
+        }
+        if (!whiteSide && r === 0 && c === 4) {
+          if (g.castle.includes('k') && !g.b[5] && !g.b[6]) add(sq, 6);
+          if (g.castle.includes('q') && !g.b[3] && !g.b[2] && !g.b[1]) add(sq, 2);
+        }
       }
     }
   }
 
   if (ignoreCheck) return moves;
 
-  // Filter moves that leave own king in check
+  // Filter moves that leave own king in check (handles pins, illegal ep, etc.)
   const legal = [];
   for (const m of moves) {
     const g2 = makeMove(g, m);
@@ -689,41 +805,244 @@ function generateMoves(g, whiteSide, ignoreCheck = false) {
 function makeMove(g, m) {
   const g2 = cloneGame(g);
   const piece = g2.b[m.from];
-  g2.b[m.to] = m.promo ? (isWhite(piece) ? m.promo.toUpperCase() : m.promo.toLowerCase()) : piece;
+  if (!piece) return g2;
+
+  g2.b[m.to] = m.promo
+    ? (isWhite(piece) ? m.promo.toUpperCase() : m.promo.toLowerCase())
+    : piece;
   g2.b[m.from] = null;
 
-  // En passant capture
-  if (piece.toUpperCase() === 'P' && m.to === g.ep) {
-    g2.b[m.to + (isWhite(piece) ? 8 : -8)] = null;
-  }
-  // Castling rook move
-  if (piece.toUpperCase() === 'K' && Math.abs(m.to - m.from) === 2) {
-    if (m.to === 62) { g2.b[61] = 'R'; g2.b[63] = null; }
-    if (m.to === 58) { g2.b[59] = 'R'; g2.b[56] = null; }
-    if (m.to === 6)  { g2.b[5] = 'r'; g2.b[7] = null; }
-    if (m.to === 2)  { g2.b[3] = 'r'; g2.b[0] = null; }
+  // En passant: remove the captured pawn that sits "behind" the ep square
+  if (piece.toUpperCase() === 'P' && m.to === g.ep && g.ep >= 0) {
+    const capSq = m.to + (isWhite(piece) ? 8 : -8);
+    if (capSq >= 0 && capSq < 64) g2.b[capSq] = null;
   }
 
-  // Update ep
+  // Castling: move the rook
+  if (piece.toUpperCase() === 'K' && Math.abs(m.to - m.from) === 2) {
+    if (m.to === 62) { g2.b[61] = 'R'; g2.b[63] = null; } // white O-O
+    if (m.to === 58) { g2.b[59] = 'R'; g2.b[56] = null; } // white O-O-O
+    if (m.to === 6)  { g2.b[5]  = 'r'; g2.b[7]  = null; } // black O-O
+    if (m.to === 2)  { g2.b[3]  = 'r'; g2.b[0]  = null; } // black O-O-O
+  }
+
+  // New en-passant square after a double pawn push
   g2.ep = -1;
   if (piece.toUpperCase() === 'P' && Math.abs(m.to - m.from) === 16) {
-    g2.ep = (m.from + m.to) / 2;
+    g2.ep = (m.from + m.to) >> 1;
   }
 
-  // Update castling rights (simple)
+  // Castling rights
   let castle = g2.castle;
-  if (piece === 'K') castle = castle.replace('K','').replace('Q','');
-  if (piece === 'k') castle = castle.replace('k','').replace('q','');
-  if (m.from === 63 || m.to === 63) castle = castle.replace('K','');
-  if (m.from === 56 || m.to === 56) castle = castle.replace('Q','');
-  if (m.from === 7  || m.to === 7)  castle = castle.replace('k','');
-  if (m.from === 0  || m.to === 0)  castle = castle.replace('q','');
+  if (piece === 'K') castle = castle.replace(/[KQ]/g, '');
+  if (piece === 'k') castle = castle.replace(/[kq]/g, '');
+  if (m.from === 63 || m.to === 63) castle = castle.replace('K', '');
+  if (m.from === 56 || m.to === 56) castle = castle.replace('Q', '');
+  if (m.from === 7  || m.to === 7)  castle = castle.replace('k', '');
+  if (m.from === 0  || m.to === 0)  castle = castle.replace('q', '');
   g2.castle = castle || '-';
 
   g2.turn = g.turn === 'w' ? 'b' : 'w';
-  g2.half = (piece.toUpperCase() === 'P' || m.capture) ? 0 : g.half + 1;
+  g2.half = (piece.toUpperCase() === 'P' || m.capture) ? 0 : (g.half + 1);
   if (g.turn === 'b') g2.full = g.full + 1;
   return g2;
+}
+
+function toFen(g) {
+  let fen = '';
+  for (let r = 0; r < 8; r++) {
+    let empty = 0;
+    for (let c = 0; c < 8; c++) {
+      const p = g.b[r * 8 + c];
+      if (!p) { empty++; continue; }
+      if (empty) { fen += empty; empty = 0; }
+      fen += p;
+    }
+    if (empty) fen += empty;
+    if (r < 7) fen += '/';
+  }
+  const ep = g.ep >= 0 ? toUci(g.ep) : '-';
+  return fen + ' ' + g.turn + ' ' + (g.castle || '-') + ' ' + ep + ' ' + (g.half || 0) + ' ' + (g.full || 1);
+}
+
+// ---------- Stockfish engine ----------
+function setEvalBar(scoreCp, mate) {
+  const fill = $('evalfill');
+  const label = $('evalscore');
+  if (!fill || !label) return;
+
+  let text = '—';
+  let whitePct = 50; // 0 = black winning, 100 = white winning
+
+  if (mate != null) {
+    const m = Number(mate);
+    text = m > 0 ? `M${m}` : `M${Math.abs(m)}`;
+    whitePct = m > 0 ? 98 : 2;
+  } else if (scoreCp != null && Number.isFinite(Number(scoreCp))) {
+    const cp = Number(scoreCp);
+    // Map ±500cp roughly to 5%–95%
+    const clamped = Math.max(-500, Math.min(500, cp));
+    whitePct = 50 + (clamped / 500) * 45;
+    const pawns = (cp / 100).toFixed(1);
+    text = (cp > 0 ? '+' : '') + pawns;
+  }
+
+  fill.style.height = whitePct + '%';
+  fill.classList.toggle('black-adv', whitePct < 45);
+  label.textContent = text;
+  label.classList.toggle('light', whitePct < 40);
+}
+
+function clearEngineHighlight() {
+  engineBest = null;
+  // re-render will drop engine classes
+}
+
+function showEngineLine(msg) {
+  const el = $('engineline');
+  if (el) el.textContent = msg;
+}
+
+function initStockfish() {
+  if (engineWorker || location.protocol === 'file:') {
+    if (location.protocol === 'file:') showEngineLine('Engine needs http:// or https:// (not file://)');
+    return;
+  }
+  try {
+    engineWorker = new Worker('./stockfish/engine.js');
+  } catch (e) {
+    showEngineLine('Engine failed to start: ' + (e.message || e));
+    return;
+  }
+
+  showEngineLine('Engine: loading Stockfish (first time may take a while)…');
+
+  engineWorker.onmessage = (ev) => {
+    const line = typeof ev.data === 'string' ? ev.data : (ev.data && ev.data.data) || '';
+    if (!line) return;
+
+    if (line.startsWith('info string Failed')) {
+      showEngineLine(line.replace(/^info string /, ''));
+      engineReady = false;
+      return;
+    }
+
+    if (line === 'uciok' || line.startsWith('id name') || line.startsWith('id author')) {
+      // wait for readyok
+    }
+
+    if (line === 'readyok') {
+      engineReady = true;
+      showEngineLine('Engine: ready');
+      if (game) requestAnalysis();
+      return;
+    }
+
+    // info depth N ... score cp X ... pv e2e4 ...
+    if (line.startsWith('info ') && line.includes(' score ')) {
+      const depthM = line.match(/\bdepth (\d+)/);
+      const cpM = line.match(/\bscore cp (-?\d+)/);
+      const mateM = line.match(/\bscore mate (-?\d+)/);
+      const pvM = line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+
+      let scoreCp = null, mate = null;
+      if (mateM) mate = parseInt(mateM[1], 10);
+      else if (cpM) scoreCp = parseInt(cpM[1], 10);
+
+      // Score is from side-to-move in some builds; Stockfish standard is from White.
+      // stockfish.js reports from White's perspective for "score cp".
+      setEvalBar(scoreCp, mate);
+
+      if (pvM) {
+        const uci = pvM[1];
+        const parsed = fromUci(uci);
+        if (parsed) {
+          engineBest = {
+            from: parsed.from,
+            to: parsed.to,
+            promo: parsed.promo,
+            uci,
+            scoreText: mate != null ? (mate > 0 ? `M${mate}` : `-M${Math.abs(mate)}`) : (scoreCp != null ? ((scoreCp > 0 ? '+' : '') + (scoreCp / 100).toFixed(1)) : '')
+          };
+        }
+        const d = depthM ? depthM[1] : '?';
+        showEngineLine(`d${d}  ${engineBest ? engineBest.uci : ''}  ${engineBest ? engineBest.scoreText : ''}`);
+      }
+      return;
+    }
+
+    if (line.startsWith('bestmove')) {
+      engineAnalyzing = false;
+      const parts = line.split(/\s+/);
+      const uci = parts[1];
+      if (uci && uci !== '(none)') {
+        const parsed = fromUci(uci);
+        if (parsed) {
+          engineBest = engineBest || {};
+          engineBest.from = parsed.from;
+          engineBest.to = parsed.to;
+          engineBest.promo = parsed.promo;
+          engineBest.uci = uci;
+        }
+        showEngineLine((engineBest && engineBest.scoreText ? engineBest.scoreText + '  ' : '') + 'best ' + uci);
+      }
+    }
+  };
+
+  engineWorker.onerror = (e) => {
+    showEngineLine('Engine error: ' + (e.message || 'worker failed'));
+    engineReady = false;
+  };
+
+  engineWorker.postMessage('uci');
+  engineWorker.postMessage('isready');
+}
+
+function stopAnalysis() {
+  if (!engineWorker || !engineReady) return;
+  try { engineWorker.postMessage('stop'); } catch (_) {}
+  engineAnalyzing = false;
+}
+
+function requestAnalysis() {
+  if (!engineWorker || !engineReady || !game) return;
+  if (waitingForOpponent) return;
+
+  stopAnalysis();
+  const fen = toFen(game);
+  const id = ++engineSearchId;
+  engineAnalyzing = true;
+  engineBest = null;
+  showEngineLine('Engine: analysing…');
+
+  // Small delay so stop settles
+  setTimeout(() => {
+    if (id !== engineSearchId) return;
+    try {
+      engineWorker.postMessage('ucinewgame');
+      engineWorker.postMessage('position fen ' + fen);
+      engineWorker.postMessage('go depth ' + engineDepth);
+    } catch (e) {
+      showEngineLine('Engine command failed');
+      engineAnalyzing = false;
+    }
+  }, 30);
+}
+
+function highlightEngineMove() {
+  if (!engineBest || !game) {
+    $('hinttext').textContent = engineReady
+      ? (engineAnalyzing ? 'Engine still analysing — try again in a moment.' : 'No engine move yet.')
+      : 'Engine not ready yet (first load can take time).';
+    return;
+  }
+  renderBoard();
+  const board = $('board');
+  const fromIdx = flipped ? 63 - engineBest.from : engineBest.from;
+  const toIdx = flipped ? 63 - engineBest.to : engineBest.to;
+  if (board.children[fromIdx]) board.children[fromIdx].classList.add('engine-from');
+  if (board.children[toIdx]) board.children[toIdx].classList.add('engine-to');
+  $('hinttext').textContent = 'Engine suggests ' + engineBest.uci + (engineBest.scoreText ? ' (' + engineBest.scoreText + ')' : '');
 }
 
 // ---------- Board rendering ----------
@@ -813,7 +1132,11 @@ function openPuzzle(p, num, total) {
   game = parseFen(p.fen);
   // Puzzle side to move is already set in the FEN
   flipped = game.turn === 'b'; // black to move → show black at bottom
+  engineBest = null;
+  setEvalBar(null, null);
+  $('hinttext').textContent = 'Engine hint shows Stockfish’s best move. Legal moves highlights the selected piece.';
   renderBoard();
+  requestAnalysis();
 }
 
 function onSquareClick(sq) {
@@ -868,6 +1191,7 @@ function tryPlayerMove(m) {
 
   if (solutionIndex >= expected.length) {
     // Solved
+    stopAnalysis();
     finishPuzzle(true);
     return;
   }
@@ -876,6 +1200,7 @@ function tryPlayerMove(m) {
   $('status').textContent = 'Correct! Opponent to move…';
   $('status').style.color = 'var(--accent)';
   waitingForOpponent = true;
+  stopAnalysis();
 
   if ($('auto').checked) {
     setTimeout(playOpponentReply, 450);
@@ -906,10 +1231,12 @@ function playOpponentReply() {
   renderBoard();
 
   if (solutionIndex >= expected.length) {
+    stopAnalysis();
     finishPuzzle(true);
   } else {
     $('status').textContent = 'Your turn.';
     $('status').style.color = '';
+    requestAnalysis();
   }
 }
 
@@ -922,10 +1249,10 @@ async function finishPuzzle(success) {
     await putMeta('stats', stats);
     drawStats();
 
-    // Advance progress for this level
+    // Advance sequential progress for this level (unlock next puzzle in the list)
     const prog = Number(await getMeta('progress_' + currentLevel) || 0);
-    // We only advance if this was the next expected puzzle (simple sequential unlock)
-    // For simplicity we just mark higher progress based on the number shown
+    // Advance by at least 1 so the next numbered puzzle becomes the "current" one
+    await putMeta('progress_' + currentLevel, prog + 1);
     $('status').textContent = 'Puzzle solved!';
     $('status').style.color = 'var(--accent)';
     $('nextbtn').disabled = false;
@@ -948,8 +1275,23 @@ $('resetbtn').onclick = () => {
   if (currentPuzzle) openPuzzle(currentPuzzle, 0, 0);
 };
 $('hintbtn').onclick = () => {
-  if (!game || selected < 0) {
-    $('hinttext').textContent = 'Select one of your pieces first, then tap “Show board hint”.';
+  if (!game) return;
+  if (!engineReady) {
+    $('hinttext').textContent = 'Engine not ready yet — first load of Stockfish can take a minute.';
+    if (!engineWorker) initStockfish();
+    return;
+  }
+  if (!engineBest) {
+    requestAnalysis();
+    $('hinttext').textContent = 'Analysing… tap Engine hint again in a moment.';
+    return;
+  }
+  highlightEngineMove();
+};
+$('legalhintbtn').onclick = () => {
+  if (!game) return;
+  if (selected < 0) {
+    $('hinttext').textContent = 'Select one of your pieces first, then tap “Legal moves”.';
     return;
   }
   highlightMoves(selected);
@@ -987,6 +1329,7 @@ async function init() {
     await syncPuzzleBatches();
     await bootstrapPack();
     await drawLevels();
+    initStockfish();
 
     const stored = await countAllPuzzles();
     if (!stored && location.protocol !== 'file:') {

@@ -1,15 +1,10 @@
-/* Chess Forge Stockfish 19 FULL (single-threaded) worker bootstrap.
- * First analysis downloads ~95 MB once; browser then caches it.
- * Optional: download the two files from
- *   https://github.com/nmrugg/stockfish.js/releases/tag/v19.0.1
- *   (stockfish-19-single.js + stockfish-19-single.wasm)
- * put them in this same folder, and change the URL below to
- *   './stockfish-19-single.js'
- * so the engine is served from your own site (recommended for production).
+/* Chess Forge Stockfish worker bootstrap.
+ * Lite single-threaded engine (~1.8 MB) — strong enough for puzzle hints & eval.
+ * Files are served from this same folder (no CDN / CORS issues).
  */
 try {
-  importScripts('https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-single.js');
+  importScripts('./stockfish-19-lite-single.js');
 } catch (e) {
-  self.postMessage('info string Failed to load full Stockfish: ' + (e && e.message ? e.message : e));
+  self.postMessage('info string Failed to load Stockfish: ' + (e && e.message ? e.message : e));
   self.postMessage('bestmove (none)');
 }

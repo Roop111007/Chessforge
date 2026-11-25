@@ -1,4 +1,4 @@
-const CACHE = 'chess-forge-player-v4-rebuild-1';
+const CACHE = 'chess-forge-player-v4-rebuild-2';
 const FILES = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const FILES = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './data/catalog.json',
-  './stockfish/engine.js'
+  './stockfish/engine.js',
+  './stockfish/stockfish-19-lite-single.js',
+  './stockfish/stockfish-19-lite-single.wasm'
 ];
 
 self.addEventListener('install', event => {
