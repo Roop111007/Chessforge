@@ -1,21 +1,19 @@
 Chess Forge third-party notices
 
-Stockfish.js 19.0.1 (Lite, single-threaded WebAssembly)
-- Used for chess position analysis.
-- The engine bootstrapper references the pinned package path:
-  https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/
+Stockfish.js 19 (Lite, single-threaded WebAssembly)
+- Bundled in the stockfish/ folder (stockfish-19-lite-single.js and .wasm) and served from the
+  same origin, so no CDN is required.
+- Used for chess position analysis and move hints.
 - Upstream source: https://github.com/nmrugg/stockfish.js
 - Package: https://www.npmjs.com/package/stockfish
-- License: GNU General Public License v3.0 (GPL-3.0).
-- Engine binaries are not bundled in this ZIP; a working internet connection
-  is required for the engine assets to load the first time.
+- Stockfish chess engine: https://github.com/official-stockfish/Stockfish
+- License: GNU General Public License v3.0 (GPL-3.0). If you distribute this app, make the
+  corresponding source available as required by the GPL (links above).
 
 Lichess puzzle database
 - Lichess states its public puzzle database exports are released under CC0.
 - Source: https://database.lichess.org/
-- The starter package contains no puzzle dataset. The owner imports the full
-  CSV once with the private Python importer; the generated batches are then
-  included in the public Player App's data/ folder.
+- The Data/ folder contains puzzles generated from that CSV.
 
 Chess Forge application code
 - HTML/CSS/JavaScript player and Python CSV import tooling are provided.
