@@ -991,7 +991,7 @@ function initStockfish() {
     return;
   }
   try {
-    engineWorker = new Worker('./stockfish/stockfish-19-lite-single.js');
+    engineWorker = new Worker('./stockfish/engine.js');
   } catch (e) {
     showEngineLine('Engine failed to start: ' + (e.message || e));
     return;
