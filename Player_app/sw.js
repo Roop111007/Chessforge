@@ -7,7 +7,7 @@ const FILES = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './data/catalog.json',
+  './Data/catalog.json',
   './stockfish/engine.js',
   './stockfish/stockfish-19-lite-single.js',
   './stockfish/stockfish-19-lite-single.wasm'
@@ -35,7 +35,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   // Always prefer fresh catalogue so new imports become visible quickly
-  if (url.pathname.endsWith('/data/catalog.json')) {
+  if (url.pathname.endsWith('/Data/catalog.json')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
         .then(response => {
@@ -45,7 +45,7 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(() => caches.match('./data/catalog.json'))
+        .catch(() => caches.match('./Data/catalog.json'))
     );
     return;
   }
