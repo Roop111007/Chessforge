@@ -1234,7 +1234,7 @@ function openPuzzle(p, num, total) {
   lastMove = null;
 
   try {
-    game = parseFen(p.fen);
+    game = parseFen(p.fen || p.FEN || p.position || '');
   } catch (error) {
     game = null;
     $('status').textContent = 'Puzzle could not be loaded: ' + error.message;
