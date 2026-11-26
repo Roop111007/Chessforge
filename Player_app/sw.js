@@ -1,4 +1,4 @@
-const CACHE = 'chess-forge-player-v4-rebuild-2';
+const CACHE = 'chess-forge-player-v4-rebuild-3';
 const FILES = [
   './',
   './index.html',
