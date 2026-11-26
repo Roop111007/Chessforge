@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "version": "mobile-75638-835558911-1795708710310",
+  "generatedAt": "2026-11-26T15:58:30.310Z",
+  "batchSizePerLevel": 1000,
+  "batchCount": 16,
+  "totalPuzzles": 75638,
+  "counts": {
+    "Easy": 9590,
+    "Medium": 47872,
+    "Hard": 14461,
+    "Tough": 3136,
+    "Unbeatable": 579
+  },
+  "skippedRows": 0,
+  "source": "Lichess puzzle database CSV (CC0; retain source attribution in app notices)"
+}
